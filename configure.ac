@@ -211,7 +211,8 @@ m4_define([USB_ADAPTERS],
 	[[[jlink], [Segger J-Link JTAG Programmer], [JLINK]],
 	[[osbdm], [OSBDM (JTAG only) Programmer], [OSBDM]],
 	[[opendous], [eStick/opendous JTAG Programmer], [OPENDOUS]],
-	[[aice], [Andes JTAG Programmer], [AICE]]])
+	[[aice], [Andes JTAG Programmer], [AICE]],
+	[[JTAGduino], [JTAGduino: Arduino as a JTAG programmer], [JTAGDUINO]]])
 
 m4_define([USB0_ADAPTERS],
 	[[[usbprog], [USBProg JTAG Programmer], [USBPROG]],
@@ -380,6 +381,10 @@ m4_define([AC_ARG_ADAPTERS], [
 ])
 
 AC_ARG_ADAPTERS([USB1_ADAPTERS, USB_ADAPTERS, USB0_ADAPTERS, HIDAPI_ADAPTERS], [auto])
+
+if test $enable_JTAGduino != no; then
+	build_bitbang=yes
+fi
 
 AC_ARG_ENABLE([parport],
   AS_HELP_STRING([--enable-parport], [Enable building the pc parallel port driver]),

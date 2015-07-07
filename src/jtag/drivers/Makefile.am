@@ -130,6 +130,9 @@ endif
 if CMSIS_DAP
 DRIVERFILES += cmsis_dap_usb.c
 endif
+if JTAGDUINO
+DRIVERFILES += jtagduino.c
+endif
 
 noinst_HEADERS = \
 	bitbang.h \
