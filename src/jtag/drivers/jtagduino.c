@@ -2,11 +2,14 @@
  * https://github.com/balau/JTAGduino
  */ 
 
-
 #include "config.h"
 #include "bitbang.h"
 #include "jtag/interface.h"
 
+
+static char *jtagduino_serdev_name = "/dev/ttyACM0"; 
+static int jtagduino_serdev_fd = -1;
+ 
 /* jtagduino utilizes previous generic code from bitbang.c.
  * This struct records the callbacks to jtagduino
  * that the bitbang.c implementation uses. 
@@ -22,7 +25,27 @@ static struct bitbang_interface jtagduino_bitbang = {
 	.blink = &jtagduino_bitbang_led
 };
 
+COMMAND_HANDLER(jtagduino_handle_jtagduino_port_command)
+{
+	if (CMD_ARGC == 1) {
+		jtagduino_serdev_name = malloc(strlen(CMD_ARGV[0]) + sizeof(char));
+		if(jtagduino_serdev_name)
+			strcpy(jtagduino_serdev_name, CMD_ARGV[0]);
+	}
+	//command_print(CMD_CTX, "parport port = 0x%" PRIx16 "", parport_port);
+
+	return ERROR_OK;
+}
+
 static const struct command_registration jtagduino_command_handlers[] = {
+	{
+		/* TODO: is it correct to prefix the device name here? */
+		.name = "jtagduino_port",
+		.handler = jtagduino_handle_jtagduino_port_command, 
+		.mode = COMMAND_CONFIG,
+		.help = "set the port. Also document this better",
+		.usage = "RTFS"
+	},
 	COMMAND_REGISTRATION_DONE
 };
 
@@ -67,8 +90,13 @@ static void jtagduino_bitbang_led(int on)
 
 static int jtagduino_init(void)
 {
-	LOG_DEBUG("init jtagduino\n");
-	LOG_OUTPUT("output log\n\n");
+	LOG_DEBUG("Opening serial device %s", jtagduino_serdev_name);
+	assert(jtagduino_serdev_fd=-1);
+	jtagduino_serdev_fd = open(jtagduino_serdev_name, O_RDWR);
+	if(jtagduino_serdev_fd < 0) {
+		LOG_ERROR("Cannot open jtagduino serial device at path %s", jtagduino_serdev_name);
+		return ERROR_JTAG_INIT_FAILED;
+	}
 
 	/* Confusing? bitbang.c defines a global 'bitbang_interface' of type 'struct bitbang_interface*'. */
 	bitbang_interface = &jtagduino_bitbang;
@@ -81,7 +109,7 @@ static int jtagduino_quit(void)
 }
 static int jtagduino_khz(int khz, int *jtag_speed)
 {
-	LOG_DEBUG("jtagduino: khz\n");
+	LOG_DEBUG("jtagduino_khz(%d, ..)", khz);
 	return ERROR_OK;
 }
 static int jtagduino_speed_div(int speed, int *khz)
