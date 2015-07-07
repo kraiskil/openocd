@@ -5,6 +5,8 @@
 #include "config.h"
 #include "bitbang.h"
 #include "jtag/interface.h"
+#include <termios.h>
+#include <unistd.h>
 
 
 static char *jtagduino_serdev_name = "/dev/ttyACM0"; 
@@ -90,13 +92,24 @@ static void jtagduino_bitbang_led(int on)
 
 static int jtagduino_init(void)
 {
+	struct termios term_io;
+
 	LOG_DEBUG("Opening serial device %s", jtagduino_serdev_name);
 	assert(jtagduino_serdev_fd=-1);
-	jtagduino_serdev_fd = open(jtagduino_serdev_name, O_RDWR);
+	jtagduino_serdev_fd = open(jtagduino_serdev_name, O_RDWR | O_NOCTTY);
 	if(jtagduino_serdev_fd < 0) {
 		LOG_ERROR("Cannot open jtagduino serial device at path %s", jtagduino_serdev_name);
+		/* TODO: would openocd guidlines allow this?:
+		perror("when opening serial port device"); */
 		return ERROR_JTAG_INIT_FAILED;
 	}
+	tcgetattr(jtagduino_serdev_fd, &term_io);
+	/*TODO: 9600 is the default value for JTAGduino. It allows chaning them, perhaps we should too?*/
+	cfsetispeed(&term_io, B9600);
+	cfsetospeed(&term_io, B9600);
+	term_io.c_cflag |= CLOCAL | CREAD;
+	/* TODO: walk through the rest of the termios flags, asserting they are correct */
+	tcsetattr(jtagduino_serdev_fd, TCSAFLUSH, &term_io);
 
 	/* Confusing? bitbang.c defines a global 'bitbang_interface' of type 'struct bitbang_interface*'. */
 	bitbang_interface = &jtagduino_bitbang;
@@ -114,7 +127,7 @@ static int jtagduino_khz(int khz, int *jtag_speed)
 }
 static int jtagduino_speed_div(int speed, int *khz)
 {
-	LOG_DEBUG("jtagduino: speed_div\n");
+	LOG_DEBUG("jtagduino: speed_div(%d)", speed);
 	return ERROR_OK;
 }
 static int jtagduino_speed(int speed)
