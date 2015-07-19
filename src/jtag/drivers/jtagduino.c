@@ -8,6 +8,46 @@
 #include <termios.h>
 #include <unistd.h>
 
+/* From JTAGduino.ino. Keep these in sync! */
+enum jtagduino_cmd {
+  CMD_IF_VER = 0x1,
+  CMD_FW_VER = 0x2,
+  CMD_SET_SERIAL_SPEED = 0x3,
+  
+  CMD_SET_PIN = 0x10,
+  CMD_CLEAR_PIN = 0x11,
+  CMD_GET_PIN = 0x12,
+  CMD_PULSE_HIGH = 0x13,
+  CMD_PULSE_LOW = 0x14,
+  CMD_ASSIGN_PIN = 0x15,
+  
+  CMD_SET_JTAG_SPEED = 0x20,
+  CMD_JTAG_CLOCK = 0x21,
+  CMD_JTAG_SEQUENCE = 0x22,
+  CMD_LED = 0x23,
+};
+
+enum jtagduino_rsp {
+  RSP_OK = 0,
+  RSP_ERROR_BAD_CMD = 1,
+  RSP_ERROR_UNKNOWN = 2,
+  RSP_ERROR_BAD_PIN = 3,
+  RSP_ERROR_BAD_SPEED = 4,
+  RSP_BAD_SEQUENCE_LEN = 5,
+  RSP_BAD_BAUD = 6,
+};
+
+#if 0
+enum jtagduino_constants {
+  MAX_RSP_LEN = 1 + JTAG_MAX_SEQUENCE_LEN_BYTES,
+  MAX_CMD_LEN = 1 + 1 + JTAG_MAX_SEQUENCE_LEN_BYTES + JTAG_MAX_SEQUENCE_LEN_BYTES,
+  IF_VER_MAJOR = 0,
+  IF_VER_MINOR = 1,
+  FW_VER_MAJOR = 0,
+  FW_VER_MINOR = 1,
+  N_BAUD_RATES = 11,
+};
+#endif
 
 static char *jtagduino_serdev_name = "/dev/ttyACM0"; 
 static int jtagduino_serdev_fd = -1;
@@ -87,7 +127,11 @@ static void jtagduino_bitbang_reset(int trst, int srst)
 }
 static void jtagduino_bitbang_led(int on)
 {
-	LOG_DEBUG("jtagduino: led\n");
+	LOG_DEBUG("jtagduino: LED %s", on?"ON":"OFF");
+	char data=CMD_LED;
+	write(jtagduino_serdev_fd, &data, 1);
+	data = !!on;
+	write(jtagduino_serdev_fd, &data, 1);
 }
 
 static int jtagduino_init(void)
