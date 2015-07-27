@@ -114,12 +114,26 @@ struct jtag_interface jtagduino_interface = {
 
 static int jtagduino_bitbang_read(void)
 {
-	LOG_DEBUG("jtagduino: read\n");
-	return ERROR_OK;
+	char data;
+	int rv = read(jtagduino_serdev_fd, &data, 1);
+	LOG_DEBUG("read %x (read %s)", data, rv==1?"OK":"FAIL");
+	
+	return data;
 }
 static void jtagduino_bitbang_write(int tck, int tms, int tdi)
 {
 	LOG_DEBUG("jtagduino: write: tck = %d, tms = %d, tdi = %d\n", tck, tms, tdi);
+	if(tck)
+	{
+		char data = CMD_JTAG_SEQUENCE;
+		write(jtagduino_serdev_fd, &data, 1);
+		data = 1; //lenght of sequence
+		write(jtagduino_serdev_fd, &data, 1);
+		data = tms;
+		write(jtagduino_serdev_fd, &data, 1);
+		data = tdi;
+		write(jtagduino_serdev_fd, &data, 1);
+	}
 }
 static void jtagduino_bitbang_reset(int trst, int srst)
 {
